@@ -29,12 +29,47 @@ def input_daily(t, params):
 
     return light
 
+def input_variable(t, params):
+    """
+    Determines external input based on a schedule that varies daily.
+    
+    Parameters:
+    - t: scalar or numpy array of time values (hours).
+    - params: Dictionary with:
+        - 'hours': List of lists, where each inner list contains tuples [(start, end)] defining light-on periods for that day.
+        - 'amp': Single amplitude value or list of amplitudes (one per time range).
+    
+    Returns:
+    - A numpy array (or scalar) indicating input presence, scaled by amplitude.
+    """
+    days_elapsed = np.floor(t / 24).astype(int)  # Which day it is
+    t_mod = np.mod(t, 24)  # Time of day
+    input_signal = np.zeros_like(t_mod, dtype=float)
+
+    for i, day_hours in enumerate(params['hours']):
+        if i >= len(params['hours']):
+            break  # Stop if out of provided days
+        
+        amps = params['amp']
+        if not isinstance(amps, (list, np.ndarray)):  
+            amps = [amps] * len(day_hours)  # Repeat single amp for all peaks
+
+        # Apply input schedule for the correct days
+        mask = days_elapsed == i  # Select times corresponding to this day
+        for (start, end), amp in zip(day_hours, amps):
+            input_signal[mask] += amp * ((t_mod[mask] >= start) & (t_mod[mask] < end))
+
+    return input_signal
+
+
 ## Plot related
 def set_day_xticks(t_span, ax=None):
+    hours = np.arange(t_span[0],t_span[1]+1,24)
+    days  = (hours/24).astype(int)
     if ax is not None:
-        ax.set_xticks(np.arange(t_span[0],t_span[1],24), np.arange(t_span[0]/24,t_span[1]/24,1).astype(int))
+        ax.set_xticks(hours, days)
     else:
-        plt.xticks(np.arange(t_span[0],t_span[1],24), np.arange(t_span[0]/24,t_span[1]/24,1).astype(int))
+        plt.xticks(hours, days)
 
 def plot_days(days, ax=None, amp=(-1.1,1)):
     if ax is not None:

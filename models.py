@@ -32,3 +32,15 @@ def circadian(t, y, params):
     L    = input_daily(t, params['light'])
     dTdt =  dT(T, mu=params['mu'], sigma=params['sigma']) - params['alpha'] * f_L(phi(t,T=T), L)
     return [dTdt]
+
+
+## Sleep model functions
+def f_sleep(x):
+    mu = 0.7
+    sigma = 0.35
+    # return np.cos(0.95*(np.pi*x-5*np.pi/8))
+    b = norm.pdf(x, loc=mu, scale=sigma)
+    return b/norm.pdf(mu, loc=mu, scale=sigma)
+
+def dS(S, tau):
+    return (1-S)/tau
