@@ -29,6 +29,30 @@ def input_daily(t, params):
 
     return light
 
+def input_daily_smooth(t, params):
+    """
+    Generates a smooth, daily repeating light input (e.g. Gaussian-shaped daylight curve).
+
+    Parameters:
+    - t: scalar or numpy array of time values (in hours).
+    - params: Dictionary with keys:
+        - 'center': Center hour of light input peak (e.g. 12 for noon)
+        - 'amp': Maximum amplitude of light (e.g. 1.0)
+        - 'width': Spread of the curve (controls duration of "day") in hours
+
+    Returns:
+    - Array or scalar of light input values.
+    """
+    t_mod = np.mod(t, 24)  # Wrap time to 24-hour clock
+    center = params.get('center', 12)  # Default to noon
+    amp = params.get('amp', 1.0)
+    width = params.get('width', 3.0)  # Default spread of ~6 hours (FWHM ~ 2.35*width)
+
+    # Gaussian profile centered at `center` with spread `width`
+    light = amp * np.exp(-0.5 * ((t_mod - center) / width) ** 2)
+
+    return light
+
 def input_variable(t, params):
     """
     Determines external input based on a schedule that varies daily.
@@ -37,29 +61,35 @@ def input_variable(t, params):
     - t: scalar or numpy array of time values (hours).
     - params: Dictionary with:
         - 'hours': List of lists, where each inner list contains tuples [(start, end)] defining light-on periods for that day.
-        - 'amp': Single amplitude value or list of amplitudes (one per time range).
+        - 'amp': List of lists, where each inner list contains amplitude values corresponding to the time ranges in 'hours'.
     
     Returns:
     - A numpy array (or scalar) indicating input presence, scaled by amplitude.
     """
-    days_elapsed = np.floor(t / 24).astype(int)  # Which day it is
-    t_mod = np.mod(t, 24)  # Time of day
+    days_elapsed = np.floor(t / 24).astype(int)  # Compute which day it is
+    t_mod = np.mod(t, 24)  # Convert to 24-hour format
     input_signal = np.zeros_like(t_mod, dtype=float)
 
     for i, day_hours in enumerate(params['hours']):
-        if i >= len(params['hours']):
-            break  # Stop if out of provided days
+        if i >= len(params['hours']):  
+            break  # Prevent out-of-bounds errors
         
-        amps = params['amp']
-        if not isinstance(amps, (list, np.ndarray)):  
+        if i >= len(params['amp']):  
+            break  # Prevent mismatch between hours and amplitudes
+        
+        amps = params['amp'][i]  # Get amplitudes for the i-th day
+
+        # Make sure the number of amplitudes matches the number of time ranges
+        if not isinstance(amps, (list, np.ndarray)):
             amps = [amps] * len(day_hours)  # Repeat single amp for all peaks
 
-        # Apply input schedule for the correct days
         mask = days_elapsed == i  # Select times corresponding to this day
+
         for (start, end), amp in zip(day_hours, amps):
             input_signal[mask] += amp * ((t_mod[mask] >= start) & (t_mod[mask] < end))
 
     return input_signal
+
 
 
 ## Plot related

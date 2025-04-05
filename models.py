@@ -18,29 +18,31 @@ def f_L(phi, L):
     return PRC(phi) * L
 
 # Define dynamics of T: circadian rhythm period
-def dT(T, mu, sigma): 
+def dT(T, mu, tau): 
     # Original: dtheta_dt = freq + f_L(theta % (2*np.pi), L_input(t,light_params)) - .001 * theta
     # Old: -(T - mu) * (T - (mu-1))**2 * (T - (mu+1))**2
     # Old: np.exp(-(T-mu)**2) * (T - mu)*(T - (mu-1))*(T - (mu+1))
     # Simple: -(T-mu)/TAU_T
     # Sigmoidal simple: -np.tanh(T-mu)/TAU_T
-    return -np.tanh(T-mu) * np.exp(-(T-mu)**2/(2*sigma**2))
+    # return -np.tanh(T-mu) * np.exp(-(T-mu)**2/(2*sigma**2))
+    return  -np.tanh(T-mu)/tau
 
 # Define system dynamics
 def circadian(t, y, params):
     T    = y[0]
-    L    = input_daily(t, params['light'])
-    dTdt =  dT(T, mu=params['mu'], sigma=params['sigma']) - params['alpha'] * f_L(phi(t,T=T), L)
+    L    = params['light']['L'](t, params['light'])
+    dTdt =  dT(T, mu=params['mu'], tau=params['tau']) - params['alpha'] * f_L(phi(t,T=T), L)
     return [dTdt]
 
 
 ## Sleep model functions
-def f_sleep(x):
-    mu = 0.7
-    sigma = 0.35
-    # return np.cos(0.95*(np.pi*x-5*np.pi/8))
-    b = norm.pdf(x, loc=mu, scale=sigma)
-    return b/norm.pdf(mu, loc=mu, scale=sigma)
+def f_S(S):
+    return S**3
 
-def dS(S, tau):
-    return (1-S)/tau
+def dS(S, tau, S_max=2):
+    return (S_max-S)/tau
+
+def sleep(t, y, params):
+    S    = y[0]
+    dSdt = dS(S, params['tau_S']) - params['rest']['R'](t, params['rest'])/params['tau_R']
+    return [dSdt]
