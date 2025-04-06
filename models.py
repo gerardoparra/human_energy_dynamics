@@ -17,6 +17,10 @@ def PRC(phase):
 def f_L(phi, L):
     return PRC(phi) * L
 
+def f_T(T, t):
+    # return (1 - np.cos(2*np.pi/T * t)) / 2
+    return -np.cos(2*np.pi/T * t)
+
 # Define dynamics of T: circadian rhythm period
 def dT(T, mu, tau): 
     # Original: dtheta_dt = freq + f_L(theta % (2*np.pi), L_input(t,light_params)) - .001 * theta
