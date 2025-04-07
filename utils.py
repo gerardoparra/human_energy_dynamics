@@ -88,3 +88,22 @@ def input_variable(t, params):
             input_signal[mask] += amp * ((t_mod[mask] >= start) & (t_mod[mask] < end))
 
     return input_signal
+
+def get_intervals(time, state):
+    """
+    Given a 1D array of time and a boolean state array, return a list of intervals
+    where state is True.
+    """
+    intervals = []
+    in_interval = False
+    start = None
+    for t, s in zip(time, state):
+        if s and not in_interval:
+            in_interval = True
+            start = t
+        elif not s and in_interval:
+            in_interval = False
+            intervals.append((start, t))
+    if in_interval:
+        intervals.append((start, time[-1]))
+    return intervals
