@@ -50,3 +50,15 @@ def sleep(t, y, params):
     S    = y[0]
     dSdt = dS(S, params['tau_S']) - params['rest']['R'](t, params['rest'])/params['tau_R']
     return [dSdt]
+
+## Combined model
+def energy(t, y, params):
+    T    = y[0]
+    S    = y[1]
+    # Circadian dynamics
+    R = params['S']['rest']['R']
+    L    = params['C']['light']['L'](t, params['C']['light']) * (R==0)
+    dTdt =  dT(T, mu=params['C']['mu'], tau=params['C']['tau']) - params['C']['alpha'] * f_L(phi(t,T=T), L)
+    # Sleep dynamics
+    dSdt = ( dS(S, params['S']['tau_S']) - R(t, params['S']['rest'])/params['S']['tau_R'] ) + f_T(T,t)/params['C']['tau']
+    return [dTdt, dSdt]
